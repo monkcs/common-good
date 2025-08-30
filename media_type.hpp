@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <format>
 #include <initializer_list>
+#include <iterator>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -124,7 +125,7 @@ namespace common_good
 					throw parsing_error {"media type: tree: last character required to be '.'"};
 				}
 
-				if (not allowed_characters({value.begin(), value.end() - 1}, {'!', '#', '$', '&', '-', '^', '_'}))
+				if (not allowed_characters({value.begin(), std::prev(value.end())}, {'!', '#', '$', '&', '-', '^', '_'}))
 				{
 					throw parsing_error {"media type: tree: containing non-valid characters"};
 				}
@@ -221,7 +222,7 @@ namespace common_good
 					throw parsing_error {"media type: suffix: second character required to be alphanumeric"};
 				}
 
-				if (not allowed_characters({value.begin() + 1, value.end()}, {'!', '#', '$', '&', '-', '^', '_'}))
+				if (not allowed_characters({std::next(value.begin()), value.end()}, {'!', '#', '$', '&', '-', '^', '_'}))
 				{
 					throw parsing_error {"media type: suffix: containing non-valid characters"};
 				}
@@ -254,7 +255,7 @@ namespace common_good
 
 			auto type = [&input]
 			{
-				if (const std::string_view match = {input.begin(), find(input, '/')}; match.end() == input.end())
+				if (const std::string_view match {input.begin(), find(input, '/')}; match.end() == input.end())
 				{
 					throw parsing_error {"media type: parsing: missing delimiter '/' after type"};
 				}
@@ -271,24 +272,21 @@ namespace common_good
 				{
 					throw parsing_error {"media type: parsing: missing tree between '/' and '.'"};
 				}
+				else if (match == input.end())
+				{
+					return media_tree {""};
+				}
 				else
 				{
-					if (match == input.end())
-					{
-						return media_tree {""};
-					}
-					else
-					{
-						const std::string_view result {input.begin(), match + 1};
-						input.remove_prefix(result.size());
-						return media_tree {std::string {result}};
-					}
+					const std::string_view result {input.begin(), std::next(match)};
+					input.remove_prefix(result.size());
+					return media_tree {std::string {result}};
 				}
 			}();
 
 			auto subtype = [&input]
 			{
-				const std::string_view match = {input.begin(), find_last(input, '+').begin()};
+				const std::string_view match {input.begin(), find_last(input, '+').begin()};
 				input.remove_prefix(match.size());
 				return media_subtype {std::string {match}};
 			}();
