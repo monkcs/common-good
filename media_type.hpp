@@ -55,10 +55,10 @@ namespace common_good
 		  public:
 			/// @brief Media Type top-level type.
 			/// @param input Top-level type in format 'type'.
-			/// @exception common_good::media_type::parsing_error If string is empty.
-			/// @exception common_good::media_type::parsing_error If string is not less than 128 characters.
-			/// @exception common_good::media_type::parsing_error If first character is not alphanumeric.
-			/// @exception common_good::media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
+			/// @exception media_type::parsing_error If string is empty.
+			/// @exception media_type::parsing_error If string is not less than 128 characters.
+			/// @exception media_type::parsing_error If first character is not alphanumeric.
+			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
 			/// '^', '_', '.', '+'.
 			[[nodiscard]] constexpr media_top_type(std::string input) : value {std::move(input)}
 			{
@@ -98,11 +98,11 @@ namespace common_good
 		  public:
 			/// @brief Media Type registration tree.
 			/// @param input Registration tree in format '' (empty, standards tree) or 'tree.'
-			/// @exception common_good::media_type::parsing_error If string is not less than 128 characters.
-			/// @exception common_good::media_type::parsing_error If first character is not alphanumeric.
-			/// @exception common_good::media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
+			/// @exception media_type::parsing_error If string is not less than 128 characters.
+			/// @exception media_type::parsing_error If first character is not alphanumeric.
+			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
 			/// '^', '_'.
-			/// @exception common_good::media_type::parsing_error If last character is not '.'.
+			/// @exception media_type::parsing_error If last character is not '.'.
 			[[nodiscard]] constexpr media_tree(std::string input) : value {std::move(input)}
 			{
 				if (value.empty())
@@ -110,7 +110,7 @@ namespace common_good
 					return;
 				}
 
-				if (value.size() < 2 or value.size() > 127)
+				if (const auto size = value.size(); size < 2 or size > 127)
 				{
 					throw parsing_error {"media type: tree: lenght required to be [2..127] characters"};
 				}
@@ -155,10 +155,10 @@ namespace common_good
 		  public:
 			/// @brief Media Type subtype.
 			/// @param input Subtype in format 'subtype'
-			/// @exception common_good::media_type::parsing_error If string is empty.
-			/// @exception common_good::media_type::parsing_error If string is not less than 128 characters.
-			/// @exception common_good::media_type::parsing_error If first character is not alphanumeric.
-			/// @exception common_good::media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
+			/// @exception media_type::parsing_error If string is empty.
+			/// @exception media_type::parsing_error If string is not less than 128 characters.
+			/// @exception media_type::parsing_error If first character is not alphanumeric.
+			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
 			/// '^', '_',
 			/// '.', '+'.
 			[[nodiscard]] constexpr media_subtype(std::string input) : value {std::move(input)}
@@ -199,15 +199,15 @@ namespace common_good
 		  public:
 			/// @brief Media Type suffix.
 			/// @param input Suffix in format '+suffix'.
-			/// @exception common_good::media_type::parsing_error If string is less than 2 characters.
-			/// @exception common_good::media_type::parsing_error If string is not less than 128 characters.
-			/// @exception common_good::media_type::parsing_error If string does not begin with '+'.
-			/// @exception common_good::media_type::parsing_error If second character is not alphanumeric.
-			/// @exception common_good::media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
+			/// @exception media_type::parsing_error If string is less than 2 characters.
+			/// @exception media_type::parsing_error If string is not less than 128 characters.
+			/// @exception media_type::parsing_error If string does not begin with '+'.
+			/// @exception media_type::parsing_error If second character is not alphanumeric.
+			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
 			/// '^', '_'.
 			[[nodiscard]] constexpr media_suffix(std::string input) : value {std::move(input)}
 			{
-				if (value.size() < 2 or value.size() > 127)
+				if (const auto size = value.size(); size < 2 or size > 127)
 				{
 					throw parsing_error {"media type: suffix: lenght required to be [2..127] characters"};
 				}
@@ -244,7 +244,7 @@ namespace common_good
 		/// @brief Parse media type as defined by RFC 6838. NOTE: Currently no support for parameters.
 		/// @param input Media type in format 'type/tree.subtype+suffix'
 		/// @return Constructed media_type
-		/// @exception common_good::media_type::parsing_error If string fail to parse.
+		/// @exception media_type::parsing_error If string fail to parse.
 		[[nodiscard]] constexpr static auto parser(std::string_view input)
 		{
 			using std::ranges::find;
@@ -299,7 +299,7 @@ namespace common_good
 	  public:
 		/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
 		/// @param input Media type in format 'type/tree.subtype+suffix'
-		/// @exception common_good::media_type::parsing_error If string fail to parse.
+		/// @exception media_type::parsing_error If string fail to parse.
 		constexpr media_type(std::string_view input) : media_type {parser(input)} { };
 
 		/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
