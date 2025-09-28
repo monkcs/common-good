@@ -1,6 +1,10 @@
 #pragma once
 
-/* https://datatracker.ietf.org/doc/html/rfc6838 */
+/*
+	https://datatracker.ietf.org/doc/html/rfc6838
+	https://datatracker.ietf.org/doc/html/rfc2045#section-5.1 (ABNF)
+	https://datatracker.ietf.org/doc/html/rfc7231#section-3.1.1.1
+*/
 
 #include "ascii.hpp"
 
@@ -9,6 +13,7 @@
 #include <format>
 #include <initializer_list>
 #include <iterator>
+#include <map>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -19,21 +24,37 @@
 namespace common_good
 {
 	/// @brief Media Type as defined by RFC 6838.
-	class media_type
+	namespace rfc6838
 	{
-		/// @brief Test if string only contain alphanumeric characters and characters in list.
+		/// @brief Test if string only contain alphanumeric characters or '!', '#', '$', '&', '-', '^', '_', '.', '+'.
 		/// @param string String to test.
-		/// @param list List of allowed characters.
-		/// @return True if string only contain alphanumeric characters and characters in list.
-		[[nodiscard]] static constexpr auto allowed_characters(const std::string_view string,
-															   const std::initializer_list<char> list) noexcept
+		/// @return True if string only contain allowed characters.
+		[[nodiscard]] static constexpr auto is_restricted_name(const std::string_view string) noexcept
 		{
-			auto lambda = [&list](const char character) noexcept
-			{ return ascii::is_alphanumeric(character) or std::ranges::contains(list, character); };
-			return std::ranges::all_of(string, lambda);
+			auto predicate = [](const char character) noexcept
+			{
+				static constexpr auto list = {'!', '#', '$', '&', '-', '^', '_', '.', '+'};
+				return ascii::is_alphanumeric(character) or std::ranges::contains(list, character);
+			};
+
+			return std::ranges::all_of(string, predicate);
 		}
 
-	  public:
+		/// @brief Test if string only contain alphanumeric characters or '!', '#', '$', '&', '-', '^', '_'.
+		/// @brief Same as `is_restricted_name(string_view)` but not allowing '.' or '+'.
+		/// @param string String to test.
+		/// @return True if string only contain allowed characters.
+		[[nodiscard]] static constexpr auto is_modified_restricted_name(const std::string_view string) noexcept
+		{
+			auto predicate = [](const char character) noexcept
+			{
+				static constexpr auto list = {'!', '#', '$', '&', '-', '^', '_'};
+				return ascii::is_alphanumeric(character) or std::ranges::contains(list, character);
+			};
+
+			return std::ranges::all_of(string, predicate);
+		}
+
 		/// @brief Media Type parsing error.
 		class parsing_error : public std::invalid_argument
 		{
@@ -48,7 +69,7 @@ namespace common_good
 		};
 
 		/// @brief Media Type top-level type.
-		class media_top_type
+		class type
 		{
 			std::string value;
 
@@ -60,7 +81,7 @@ namespace common_good
 			/// @exception media_type::parsing_error If first character is not alphanumeric.
 			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
 			/// '^', '_', '.', '+'.
-			[[nodiscard]] constexpr media_top_type(std::string input) : value {std::move(input)}
+			[[nodiscard]] constexpr type(std::string input) : value {std::move(input)}
 			{
 				if (value.empty() or value.size() > 127)
 				{
@@ -72,7 +93,7 @@ namespace common_good
 					throw parsing_error {"media type: top-level type: first character required to be alphanumeric"};
 				}
 
-				if (not allowed_characters(value, {'!', '#', '$', '&', '-', '^', '_', '.', '+'}))
+				if (not is_restricted_name(value))
 				{
 					throw parsing_error {"media type: top-level type: containing non-valid characters"};
 				}
@@ -80,18 +101,18 @@ namespace common_good
 				std::ranges::transform(value, value.begin(), ascii::to_lowercase);
 			}
 
-			[[nodiscard]] constexpr auto operator==(const media_top_type&) const noexcept -> bool = default;
+			[[nodiscard]] constexpr auto operator==(const type&) const noexcept -> bool = default;
 
 			/// @brief Get string representing top-level type.
 			/// @return Const reference to string.
-			[[nodiscard]] constexpr auto& string() const& noexcept { return value; }
+			[[nodiscard]] constexpr const auto& string() const& noexcept { return value; }
 
 			/// @brief Get string representing top-level type.
 			[[nodiscard]] constexpr auto string() && noexcept { return std::move(value); }
 		};
 
 		/// @brief Media Type registration tree.
-		class media_tree
+		class tree
 		{
 			std::string value;
 
@@ -103,37 +124,39 @@ namespace common_good
 			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
 			/// '^', '_'.
 			/// @exception media_type::parsing_error If last character is not '.'.
-			[[nodiscard]] constexpr media_tree(std::string input) : value {std::move(input)}
+			[[nodiscard]] constexpr tree(std::string input) : value {std::move(input)}
 			{
 				if (value.empty())
 				{
 					return;
 				}
 
-				if (const auto size = value.size(); size < 2 or size > 127)
+				if (value.size() < 2 or value.size() > 127)
 				{
 					throw parsing_error {"media type: tree: lenght required to be [2..127] characters"};
 				}
-
-				if (not ascii::is_alphanumeric(value.front()))
+				else
 				{
-					throw parsing_error {"media type: tree: first character required to be alphanumeric"};
-				}
+					if (not ascii::is_alphanumeric(value.front()))
+					{
+						throw parsing_error {"media type: tree: first character required to be alphanumeric"};
+					}
 
-				if (value.back() != '.')
-				{
-					throw parsing_error {"media type: tree: last character required to be '.'"};
-				}
+					if (value.back() != '.')
+					{
+						throw parsing_error {"media type: tree: last character required to be '.'"};
+					}
 
-				if (not allowed_characters({value.begin(), std::prev(value.end())}, {'!', '#', '$', '&', '-', '^', '_'}))
-				{
-					throw parsing_error {"media type: tree: containing non-valid characters"};
-				}
+					if (not is_modified_restricted_name({value.begin(), std::prev(value.end())}))
+					{
+						throw parsing_error {"media type: tree: containing non-valid characters"};
+					}
 
-				std::ranges::transform(value, value.begin(), ascii::to_lowercase);
+					std::ranges::transform(value, value.begin(), ascii::to_lowercase);
+				}
 			}
 
-			[[nodiscard]] constexpr auto operator==(const media_tree&) const noexcept -> bool = default;
+			[[nodiscard]] constexpr auto operator==(const tree&) const noexcept -> bool = default;
 
 			/// @brief Get string representing registration tree. String is empty if tree is standard tree.
 			/// @return Const reference to string.
@@ -148,7 +171,7 @@ namespace common_good
 		};
 
 		/// @brief Media Type subtype.
-		class media_subtype
+		class subtype
 		{
 			std::string value;
 
@@ -159,29 +182,30 @@ namespace common_good
 			/// @exception media_type::parsing_error If string is not less than 128 characters.
 			/// @exception media_type::parsing_error If first character is not alphanumeric.
 			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
-			/// '^', '_',
-			/// '.', '+'.
-			[[nodiscard]] constexpr media_subtype(std::string input) : value {std::move(input)}
+			/// '^', '_', '.', '+'.
+			[[nodiscard]] constexpr subtype(std::string input) : value {std::move(input)}
 			{
 				if (value.empty() or value.size() > 127)
 				{
 					throw parsing_error {"media type: subtype: lenght required to be [1..127] characters"};
 				}
-
-				if (not ascii::is_alphanumeric(value.front()))
+				else
 				{
-					throw parsing_error {"media type: subtype: first character required to be alphanumeric"};
-				}
+					if (not ascii::is_alphanumeric(value.front()))
+					{
+						throw parsing_error {"media type: subtype: first character required to be alphanumeric"};
+					}
 
-				if (not allowed_characters(value, {'!', '#', '$', '&', '-', '^', '_', '.', '+'}))
-				{
-					throw parsing_error {"media type: subtype: containing non-valid characters"};
-				}
+					if (not is_restricted_name(value))
+					{
+						throw parsing_error {"media type: subtype: containing non-valid characters"};
+					}
 
-				std::ranges::transform(value, value.begin(), ascii::to_lowercase);
+					std::ranges::transform(value, value.begin(), ascii::to_lowercase);
+				}
 			}
 
-			[[nodiscard]] constexpr auto operator==(const media_subtype&) const noexcept -> bool = default;
+			[[nodiscard]] constexpr auto operator==(const subtype&) const noexcept -> bool = default;
 
 			/// @brief Get string representing subtype.
 			/// @return Const reference to string.
@@ -192,7 +216,7 @@ namespace common_good
 		};
 
 		/// @brief Media Type suffix.
-		class media_suffix
+		class suffix
 		{
 			std::string value;
 
@@ -205,32 +229,38 @@ namespace common_good
 			/// @exception media_type::parsing_error If second character is not alphanumeric.
 			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
 			/// '^', '_'.
-			[[nodiscard]] constexpr media_suffix(std::string input) : value {std::move(input)}
+			[[nodiscard]] constexpr suffix(std::string input) : value {std::move(input)}
 			{
-				if (const auto size = value.size(); size < 2 or size > 127)
+				if (value.size() < 2 or value.size() > 127)
 				{
 					throw parsing_error {"media type: suffix: lenght required to be [2..127] characters"};
 				}
-
-				if (value.front() != '+')
+				else
 				{
-					throw parsing_error {"media type: suffix: first character required to be '+'"};
-				}
+					if (value.front() != '+')
+					{
+						throw parsing_error {"media type: suffix: first character required to be '+'"};
+					}
+					else
+					{
+						const std::string_view substring {std::next(value.begin()), value.end()};
 
-				if (not ascii::is_alphanumeric(value[1]))
-				{
-					throw parsing_error {"media type: suffix: second character required to be alphanumeric"};
-				}
+						if (not ascii::is_alphanumeric(substring.front()))
+						{
+							throw parsing_error {"media type: suffix: second character required to be alphanumeric"};
+						}
 
-				if (not allowed_characters({std::next(value.begin()), value.end()}, {'!', '#', '$', '&', '-', '^', '_'}))
-				{
-					throw parsing_error {"media type: suffix: containing non-valid characters"};
-				}
+						if (not is_modified_restricted_name(substring))
+						{
+							throw parsing_error {"media type: suffix: containing non-valid characters"};
+						}
 
-				std::ranges::transform(value, value.begin(), ascii::to_lowercase);
+						std::ranges::transform(value, value.begin(), ascii::to_lowercase);
+					}
+				}
 			}
 
-			[[nodiscard]] constexpr auto operator==(const media_suffix&) const noexcept -> bool = default;
+			[[nodiscard]] constexpr auto operator==(const suffix&) const noexcept -> bool = default;
 
 			/// @brief Get string representing suffix.
 			/// @return Const reference to string.
@@ -240,179 +270,337 @@ namespace common_good
 			[[nodiscard]] constexpr auto string() && noexcept { return std::move(value); }
 		};
 
-	  private:
-		/// @brief Parse media type as defined by RFC 6838. NOTE: Currently no support for parameters.
-		/// @param input Media type in format 'type/tree.subtype+suffix'
-		/// @return Constructed media_type
-		/// @exception media_type::parsing_error If string fail to parse.
-		[[nodiscard]] constexpr static auto parser(std::string_view input)
+		/// @brief Media Type parameter name.
+		class parameter_name
 		{
-			using std::ranges::find;
-			using std::ranges::find_last;
+			std::string value;
 
-			/* As this class not currently supports parameters, the following line ignores potentional parameters. */
-			input = std::string_view {input.begin(), find(input, ';')};
-
-			auto type = [&input]
+		  public:
+			/// @brief Media Type parameter name.
+			/// @param input Parameter name in format 'name'
+			/// @exception media_type::parsing_error If string is empty.
+			/// @exception media_type::parsing_error If string is not less than 128 characters.
+			/// @exception media_type::parsing_error If first character is not alphanumeric.
+			/// @exception media_type::parsing_error If remainder of string is not alphanumeric or '!', '#', '$', '&', '-',
+			/// '^', '_', '.', '+'.
+			[[nodiscard]] constexpr parameter_name(std::string input) : value {std::move(input)}
 			{
-				if (const std::string_view match {input.begin(), find(input, '/')}; match.end() == input.end())
+				if (value.empty() or value.size() > 127)
 				{
-					throw parsing_error {"media type: parsing: missing delimiter '/' after type"};
+					throw parsing_error {"media type: parameter name: lenght required to be [1..127] characters"};
 				}
 				else
 				{
-					input.remove_prefix(match.size() + 1);
-					return media_top_type {std::string {match}};
-				}
-			}();
+					if (not ascii::is_alphanumeric(value.front()))
+					{
+						throw parsing_error {"media type: parameter name: first character required to be alphanumeric"};
+					}
 
-			auto tree = [&input]
-			{
-				if (const auto match = find(input, '.'); match == input.begin())
-				{
-					throw parsing_error {"media type: parsing: missing tree between '/' and '.'"};
+					if (not is_restricted_name(value))
+					{
+						throw parsing_error {"media type: parameter name: containing non-valid characters"};
+					}
+
+					std::ranges::transform(value, value.begin(), ascii::to_lowercase);
 				}
-				else if (match == input.end())
+			}
+
+			[[nodiscard]] constexpr auto operator<=>(const parameter_name&) const noexcept = default;
+
+			/// @brief Get string representing parameter attribute.
+			/// @return Const reference to string.
+			[[nodiscard]] constexpr auto& string() const& noexcept { return value; }
+
+			/// @brief Get string representing parameter attribute.
+			[[nodiscard]] constexpr auto string() && noexcept { return std::move(value); }
+		};
+
+		/// @brief Media Type parameter value.
+		class parameter_value
+		{
+			std::string backend;
+
+			[[nodiscard]] constexpr auto inner_string() const noexcept { return std::string_view {backend.begin() + 1, backend.end() - 1}; }
+
+		  public:
+			/// @brief Media Type parameter value.
+			[[nodiscard]] constexpr parameter_value(std::string input) : backend {std::move(input)}
+			{
+				if (backend.empty() or backend.size() > 127)
 				{
-					return media_tree {""};
+					throw parsing_error {"media type: parameter value: lenght required to be [1..127] characters"};
 				}
 				else
 				{
-					const std::string_view result {input.begin(), std::next(match)};
-					input.remove_prefix(result.size());
-					return media_tree {std::string {result}};
+					if (backend.front() == '"')
+					{
+						if (backend.size() == 1 or backend.back() != '"')
+						{
+							throw parsing_error {"media type: parameter value: quoted string missing trailing '\"'"};
+						}
+
+						if (backend.size() == 2)
+						{
+							throw parsing_error {"media type: parameter value: quoted string empty"};
+						}
+
+						if (std::ranges::contains(inner_string(), '"'))
+						{
+							throw parsing_error {"media type: parameter value: quoted string containing '\"'"};
+						}
+					}
+					else
+					{
+						if (not is_restricted_name(backend))
+						{
+							throw parsing_error {"media type: parameter value: non-quoted string containing non-valid characters"};
+						}
+					}
 				}
-			}();
+			}
 
-			auto subtype = [&input]
+			/// @brief Get string representing parameter value, may be quoted.
+			/// @return Const reference to string.
+			[[nodiscard]] constexpr auto& string() const& noexcept { return backend; }
+
+			/// @brief Get string representing parameter value, may be quoted.
+			[[nodiscard]] constexpr auto string() && noexcept { return std::move(backend); }
+
+			[[nodiscard]] constexpr auto value_view() const& noexcept
 			{
-				const std::string_view match {input.begin(), find_last(input, '+').begin()};
-				input.remove_prefix(match.size());
-				return media_subtype {std::string {match}};
-			}();
+				return (backend.front() == '"') ? inner_string() : std::string_view {backend};
+			}
+			auto value_view() && = delete("Use value() instead on a r-value object");
 
-			auto suffix = input.empty() ? std::nullopt : std::optional<media_suffix> {std::string {input}};
+			[[nodiscard]] constexpr auto value() const& noexcept { return backend.front() == '"' ? std::string {inner_string()} : backend; }
 
-			return media_type {std::move(type), std::move(tree), std::move(subtype), std::move(suffix)};
-		}
+			[[nodiscard]] constexpr auto value() && noexcept
+			{
+				return backend.front() == '"' ? std::string {inner_string()} : std::move(backend);
+			}
 
-	  public:
-		/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
-		/// @param input Media type in format 'type/tree.subtype+suffix'
-		/// @exception media_type::parsing_error If string fail to parse.
-		constexpr media_type(std::string_view input) : media_type {parser(input)} { };
+			[[nodiscard]] friend constexpr auto operator==(const parameter_value& first, const parameter_value& second) noexcept -> bool
+			{
+				return first.value_view() == second.value_view();
+			}
+		};
 
-		/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
-		/// @param type Top-level type.
-		/// @param tree Registration tree.
-		/// @param subtype Subtype.
-		/// @param suffix Optional suffix.
-		constexpr media_type(media_top_type type, media_tree tree, media_subtype subtype, std::optional<media_suffix> suffix = {}) noexcept
-			:
-			type {std::move(type)}, tree {std::move(tree)}, subtype {std::move(subtype)}, suffix {std::move(suffix)} { };
+		/// @brief Media Type as defined by RFC 6838.
+		class media_type
+		{
+			[[nodiscard]] constexpr static auto parser(std::string_view input) -> media_type
+			{
+				/* As this class not currently supports parameters, the following line ignores potentional parameters. */
+				input = {std::begin(input), std::ranges::find(input, ';')};
 
-		/// @brief Top-level type.
-		media_top_type type;
+				const auto type = [begin = std::begin(input), &input] -> std::string_view
+				{
+					const auto match = std::ranges::find(input, '/');
 
-		/// @brief Registration tree.
-		media_tree tree;
+					if (match == std::end(input))
+					{
+						throw parsing_error {"media type: parsing: missing delimiter '/' after type"};
+					}
+					else
+					{
+						input = {std::next(match), std::end(input)};
+						return {begin, match};
+					}
+				}();
 
-		/// @brief Subtype.
-		media_subtype subtype;
+				const auto tree = [begin = std::begin(input), &input] -> std::string_view
+				{
+					const auto match = std::ranges::find(input, '.');
 
-		/// @brief Optional structured type name suffix.
-		std::optional<media_suffix> suffix;
+					if (match == begin)
+					{
+						throw parsing_error {"media type: parsing: missing tree between '/' and '.'"};
+					}
+					else if (match == std::end(input))
+					{
+						return {""};
+					}
+					else
+					{
+						input = {std::next(match), std::end(input)};
+						return {begin, std::next(match)};
+					}
+				}();
 
-		[[nodiscard]] constexpr auto operator==(const media_type&) const noexcept -> bool = default;
+				const auto subtype = [begin = std::begin(input), &input] -> std::string_view
+				{
+					const auto match = std::begin(std::ranges::find_last(input, '+'));
+					input = {match, std::end(input)};
+					return {begin, match};
+				}();
 
-		/// @brief Get media type as string in format 'type/tree.subtype+suffix'
-		[[nodiscard]] constexpr operator std::string() const;
+				const auto suffix = input.empty() ? std::nullopt : std::optional<rfc6838::suffix> {std::string {input}};
 
-		/// @brief Get media type as string in format 'type/tree.subtype+suffix'
-		[[nodiscard]] constexpr auto string() const { return operator std::string(); }
-	};
+				return media_type {{std::string {type}}, {std::string {tree}}, {std::string {subtype}}, suffix};
+			}
+
+		  public:
+			/// @brief Media Type parsing error.
+			using parsing_error = rfc6838::parsing_error;
+
+			/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
+			/// @param input Media type in format 'type/tree.subtype+suffix'
+			/// @exception media_type::parsing_error If string fail to parse.
+			constexpr media_type(std::string_view input) : media_type {parser(input)} { };
+
+			/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
+			/// @param type Top-level type.
+			/// @param tree Registration tree.
+			/// @param subtype Subtype.
+			/// @param suffix Optional suffix.
+			constexpr media_type(rfc6838::type type,
+								 rfc6838::tree tree,
+								 rfc6838::subtype subtype,
+								 std::optional<rfc6838::suffix> suffix = {}) noexcept :
+				type {std::move(type)}, tree {std::move(tree)}, subtype {std::move(subtype)}, suffix {std::move(suffix)} { };
+
+			/// @brief Top-level type.
+			rfc6838::type type;
+
+			/// @brief Registration tree.
+			rfc6838::tree tree;
+
+			/// @brief Subtype.
+			rfc6838::subtype subtype;
+
+			/// @brief Optional structured type name suffix.
+			std::optional<rfc6838::suffix> suffix;
+
+			[[nodiscard]] constexpr auto operator==(const media_type&) const noexcept -> bool = default;
+
+			/// @brief Get media type as string in format 'type/tree.subtype+suffix'
+			[[nodiscard]] constexpr operator std::string() const
+			{
+				/* std::format is not as of C++26 constexpr. */
+				if consteval
+				{
+					return std::string {type.string()}
+						.append("/")
+						.append(tree.string())
+						.append(subtype.string())
+						.append(suffix ? suffix->string() : "");
+				}
+				else
+				{
+					return std::format("{}/{}{}{}", type.string(), tree.string(), subtype.string(), suffix ? suffix->string() : "");
+				}
+			}
+
+			/// @brief Get media type as string in format 'type/tree.subtype+suffix'
+			[[nodiscard]] constexpr auto string() const -> std::string { return operator std::string(); }
+
+			/// @brief Get copy of media type without a suffix.
+			/// @return Media type consisting of type, tree and subtype.
+			[[nodiscard]] constexpr auto without_suffix() const& noexcept -> media_type { return {type, tree, subtype}; }
+
+			/// @brief Get media type without a suffix.
+			/// @return Media type consisting of type, tree and subtype.
+			[[nodiscard]] constexpr auto without_suffix() && noexcept -> media_type
+			{
+				suffix.reset();
+				return std::move(*this);
+			}
+		};
+	}
+
+	using rfc6838::media_type;
 }
 
-constexpr auto operator""_media_type(const char* string, const std::size_t lenght)
-{
-	return common_good::media_type {std::string_view {string, lenght}};
-}
-
-constexpr auto operator""_top_type(const char* string, const std::size_t lenght)
-{
-	return common_good::media_type::media_top_type {std::string {string, lenght}};
-}
-
-constexpr auto operator""_tree(const char* string, const std::size_t lenght)
-{
-	return common_good::media_type::media_tree {std::string {string, lenght}};
-}
-
-constexpr auto operator""_subtype(const char* string, const std::size_t lenght)
-{
-	return common_good::media_type::media_subtype {std::string {string, lenght}};
-}
-
-constexpr auto operator""_suffix(const char* string, const std::size_t lenght)
-{
-	return common_good::media_type::media_suffix {std::string {string, lenght}};
-}
+/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
+/// @param string Media type in format 'type/tree.subtype+suffix'
+/// @exception media_type::parsing_error If string fail to parse.
+constexpr auto operator""_media_type(const char* string, const std::size_t lenght) { return common_good::media_type {{string, lenght}}; }
 
 template<>
-struct std::formatter<common_good::media_type::media_top_type> : std::formatter<std::string>
+struct std::formatter<common_good::rfc6838::type> : std::formatter<std::string>
 {
-	constexpr auto format(const common_good::media_type::media_top_type& type, std::format_context& context) const
+	constexpr auto format(const common_good::rfc6838::type& type, auto&& context) const
 	{
 		return std::formatter<std::string>::format(type.string(), context);
 	}
 };
 
 template<>
-struct std::formatter<common_good::media_type::media_tree> : std::formatter<std::string>
+struct std::formatter<common_good::rfc6838::tree> : std::formatter<std::string>
 {
-	constexpr auto format(const common_good::media_type::media_tree& tree, std::format_context& context) const
+	constexpr auto format(const common_good::rfc6838::tree& tree, auto&& context) const
 	{
 		return std::formatter<std::string>::format(tree.string(), context);
 	}
 };
 
 template<>
-struct std::formatter<common_good::media_type::media_subtype> : std::formatter<std::string>
+struct std::formatter<common_good::rfc6838::subtype> : std::formatter<std::string>
 {
-	constexpr auto format(const common_good::media_type::media_subtype& subtype, std::format_context& context) const
+	constexpr auto format(const common_good::rfc6838::subtype& subtype, auto&& context) const
 	{
 		return std::formatter<std::string>::format(subtype.string(), context);
 	}
 };
 
 template<>
-struct std::formatter<common_good::media_type::media_suffix> : std::formatter<std::string>
+struct std::formatter<common_good::rfc6838::suffix> : std::formatter<std::string>
 {
-	constexpr auto format(const common_good::media_type::media_suffix& suffix, std::format_context& context) const
+	constexpr auto format(const common_good::rfc6838::suffix& suffix, auto&& context) const
 	{
 		return std::formatter<std::string>::format(suffix.string(), context);
 	}
 };
 
 template<>
-struct std::formatter<std::optional<common_good::media_type::media_suffix>> : std::formatter<std::string>
+struct std::formatter<std::optional<common_good::rfc6838::suffix>> : std::formatter<std::string>
 {
-	constexpr auto format(const std::optional<common_good::media_type::media_suffix>& optional_suffix, std::format_context& context) const
+	constexpr auto format(const std::optional<common_good::rfc6838::suffix>& optional_suffix, auto&& context) const
 	{
 		return std::formatter<std::string>::format(optional_suffix ? optional_suffix->string() : "", context);
 	}
 };
 
 template<>
+struct std::formatter<common_good::rfc6838::parameter_name> : public std::formatter<std::string>
+{
+	constexpr auto format(const common_good::rfc6838::parameter_name& attribute, auto&& context) const
+	{
+		return std::formatter<std::string>::format(attribute.string(), context);
+	}
+};
+
+template<>
+struct std::formatter<common_good::rfc6838::parameter_value> : public std::formatter<std::string>
+{
+	constexpr auto format(const common_good::rfc6838::parameter_value& value, auto&& context) const
+	{
+		return std::formatter<std::string>::format(value.string(), context);
+	}
+};
+
+template<>
 struct std::formatter<common_good::media_type> : std::formatter<std::string>
 {
-	constexpr auto format(const common_good::media_type& media_type, std::format_context& context) const
+	constexpr auto format(const common_good::media_type& media_type, auto&& context) const
 	{
 		return std::formatter<std::string>::format(media_type.string(), context);
 	}
 };
 
-namespace common_good
-{
-	[[nodiscard]] constexpr media_type::operator std::string() const { return std::format("{}/{}{}{}", type, tree, subtype, suffix); }
-}
+/*  backburner:
+
+	// std::map<parameter_name, parameter_value> parameters;
+
+	// parameters {std::move(parameters)}
+
+	// std::map<parameter_name, parameter_value> parameters = {}
+
+	const std::string_view input = "; charset=UTF-1;charset=UTF-2;charset=UTF-3";
+	std::map<common_good::rfc6838::parameter_name, common_good::rfc6838::parameter_value> map {};
+
+	for (const auto& p : input | std::views::split(std::string_view {";"}) | std::views::filter(std::not_fn(std::ranges::empty)))
+	{
+		std::println("'{}'", p | std::ranges::to<std::string>());
+	}
+*/
