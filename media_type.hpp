@@ -446,17 +446,17 @@ namespace common_good
 			/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
 			/// @param input Media type in format 'type/tree.subtype+suffix'
 			/// @exception media_type::parsing_error If string fail to parse.
-			constexpr media_type(std::string_view input) : media_type {parser(input)} { };
+			[[nodiscard]] constexpr media_type(std::string_view input) : media_type {parser(input)} { };
 
 			/// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
 			/// @param type Top-level type.
 			/// @param tree Registration tree.
 			/// @param subtype Subtype.
 			/// @param suffix Optional suffix.
-			constexpr media_type(rfc6838::type type,
-								 rfc6838::tree tree,
-								 rfc6838::subtype subtype,
-								 std::optional<rfc6838::suffix> suffix = {}) noexcept :
+			[[nodiscard]] constexpr media_type(rfc6838::type type,
+											   rfc6838::tree tree,
+											   rfc6838::subtype subtype,
+											   std::optional<rfc6838::suffix> suffix = {}) noexcept :
 				type {std::move(type)}, tree {std::move(tree)}, subtype {std::move(subtype)}, suffix {std::move(suffix)} { };
 
 			/// @brief Top-level type.
@@ -514,7 +514,10 @@ namespace common_good
 /// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
 /// @param string Media type in format 'type/tree.subtype+suffix'
 /// @exception media_type::parsing_error If string fail to parse.
-constexpr auto operator""_media_type(const char* string, const std::size_t lenght) { return common_good::media_type {{string, lenght}}; }
+[[nodiscard]] constexpr auto operator""_media_type(const char* string, const std::size_t lenght)
+{
+	return common_good::media_type {{string, lenght}};
+}
 
 template<>
 struct std::formatter<common_good::rfc6838::type> : std::formatter<std::string>
