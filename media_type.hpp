@@ -514,7 +514,7 @@ namespace common_good
 /// @brief Media Type as defined by RFC 6838. NOTE: Currently no support for parameters.
 /// @param string Media type in format 'type/tree.subtype+suffix'
 /// @exception media_type::parsing_error If string fail to parse.
-[[nodiscard]] constexpr auto operator""_media_type(const char* string, const std::size_t lenght)
+[[nodiscard]] constexpr auto operator""_media_type(const char* const string, const std::size_t lenght)
 {
 	return common_good::media_type {{string, lenght}};
 }
