@@ -11,76 +11,59 @@ namespace common_good::ascii
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_alphabetic_lowercase(const char character) noexcept -> bool
-	{
-		return character >= 'a' and character <= 'z';
-	}
+	{ return character >= 'a' and character <= 'z'; }
 
 	/// @brief Test if character is alphabetic uppercase [A-Z].
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_alphabetic_uppercase(const char character) noexcept -> bool
-	{
-		return character >= 'A' and character <= 'Z';
-	}
+	{ return character >= 'A' and character <= 'Z'; }
 
 	/// @brief Test if character is alphabetic uppercase or digit [A-Z0-9].
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_alphanumeric_uppercase(const char character) noexcept -> bool
-	{
-		return is_alphabetic_uppercase(character) or is_digit(character);
-	}
+	{ return is_alphabetic_uppercase(character) or is_digit(character); }
 
 	/// @brief Test if character is alphabetic lowercase or digit [a-z0-9].
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_alphanumeric_lowercase(const char character) noexcept -> bool
-	{
-		return is_alphabetic_lowercase(character) or is_digit(character);
-	}
+	{ return is_alphabetic_lowercase(character) or is_digit(character); }
 
 	/// @brief Convert character to lowercase.
 	/// @param character Ascii character to convert.
 	/// @return Lowercase character if input is [A-Z], otherwise input unchanged.
 	[[nodiscard]] constexpr auto to_lowercase(const char character) noexcept -> char
-	{
-		return is_alphabetic_uppercase(character) ? character + 32 : character;
-	}
+	{ return is_alphabetic_uppercase(character) ? character + 32 : character; }
 
 	/// @brief Convert character to uppercase.
 	/// @param character Ascii character to convert.
 	/// @return Uppercase character if input is [a-z], otherwise input unchanged.
 	[[nodiscard]] constexpr auto to_uppercase(const char character) noexcept -> char
-	{
-		return is_alphabetic_lowercase(character) ? character - 32 : character;
-	}
+	{ return is_alphabetic_lowercase(character) ? character - 32 : character; }
 
 	/// @brief Test if character is Null, Start of Heading, Start of Text, End of Text, End of Transmission, Enquiry, Acknowledge, Bell,
 	/// Backspace, Horizontal Tabulation, Line Feed, Vertical Tabulation, Form Feed, Carriage Return, Shift Out, Shift In, Data Link Escape,
 	/// Device Control One, Device Control Two, Device Control Three, Device Control Four, Negative Acknowledge, Synchronous Idle, End of
-	/// Transmission Block, Cancel, End of medium, Substitute, Escape, File Separator, Group Separator, Record Separator, Unit Separator.
+	/// Transmission Block, Cancel, End of medium, Substitute, Escape, File Separator, Group Separator, Record Separator, Unit Separator,
+	/// Delete.
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_control(const char character) noexcept -> bool
-	{
-		return character == char {0} or (character > char {0} and character <= char {31}) or (character == char {127});
-	}
+	{ return character == char {0} or (character > char {0} and character <= char {31}) or (character == char {127}); }
 
 	/// @brief Test if character is space, alphanumeric [a-zA-Z0-9], punctuation.
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_printable(const char character) noexcept -> bool
-	{
-		return character >= char {32} and character <= char {126};
-	}
+	{ return character >= char {32} and character <= char {126}; }
 
 	/// @brief Test if character is alphanumeric [a-zA-Z0-9], punctuation.
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_graphical(const char character) noexcept -> bool
-	{
-		return is_printable(character) and character != ' ';
-	}
+	{ return is_printable(character) and character != ' '; }
 
 	/// @brief Test if character is space or horizontal tabulation.
 	/// @param character Ascii character to test.
@@ -91,33 +74,25 @@ namespace common_good::ascii
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_alphabetic(const char character) noexcept -> bool
-	{
-		return is_alphabetic_uppercase(character) or is_alphabetic_lowercase(character);
-	}
+	{ return is_alphabetic_uppercase(character) or is_alphabetic_lowercase(character); }
 
 	/// @brief Test if character is alphabetic or digit [a-zA-Z0-9].
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_alphanumeric(const char character) noexcept -> bool
-	{
-		return is_alphabetic(character) or is_digit(character);
-	}
+	{ return is_alphabetic(character) or is_digit(character); }
 
 	/// @brief Test if character is hexadecimal digit [0-9a-fA-F].
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_hexadecimal(const char character) noexcept -> bool
-	{
-		return is_digit(character) or (character >= 'A' and character <= 'F') or (character >= 'a' and character <= 'f');
-	}
+	{ return is_digit(character) or (character >= 'A' and character <= 'F') or (character >= 'a' and character <= 'f'); }
 
 	/// @brief Test if character is space, form feed, new line, carriage return, horizontal tabulation or vertical tabulation.
 	/// @param character Ascii character to test.
 	/// @return True if character match.
 	[[nodiscard]] constexpr auto is_space(const char character) noexcept -> bool
-	{
-		return (character >= char {9} and character <= char {13}) or (character == ' ');
-	}
+	{ return (character >= char {9} and character <= char {13}) or (character == ' '); }
 
 	/// @brief Test if character is ! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
 	/// @param character Ascii character to test.
@@ -126,5 +101,42 @@ namespace common_good::ascii
 	{
 		return (character >= char {33} and character <= char {47}) or (character >= char {58} and character <= char {64})
 			   or (character >= char {91} and character <= char {96}) or (character >= char {123} and character <= char {126});
+	}
+
+	namespace control
+	{
+		static constexpr char null = '\u0000';
+		static constexpr char start_of_heading = '\u0001';
+		static constexpr char start_of_text = '\u0002';
+		static constexpr char end_of_text = '\u0003';
+		static constexpr char end_of_transmission = '\u0004';
+		static constexpr char enquiry = '\u0005';
+		static constexpr char acknowledge = '\u0006';
+		static constexpr char bell = '\u0007';
+		static constexpr char backspace = '\u0008';
+		static constexpr char horizontal_tabulation = '\u0009';
+		static constexpr char line_feed = '\u000a';
+		static constexpr char vertical_tabulation = '\u000b';
+		static constexpr char form_feed = '\u000c';
+		static constexpr char carriage_return = '\u000d';
+		static constexpr char shift_out = '\u000e';
+		static constexpr char shift_in = '\u000f';
+		static constexpr char data_link_escape = '\u0010';
+		static constexpr char device_control_one = '\u0011';
+		static constexpr char device_control_two = '\u0012';
+		static constexpr char device_control_three = '\u0013';
+		static constexpr char device_control_four = '\u0014';
+		static constexpr char negative_acknowledge = '\u0015';
+		static constexpr char synchronous_idle = '\u0016';
+		static constexpr char end_of_transmission_block = '\u0017';
+		static constexpr char cancel = '\u0018';
+		static constexpr char end_of_medium = '\u0019';
+		static constexpr char substitute = '\u001a';
+		static constexpr char escape = '\u001b';
+		static constexpr char file_separator = '\u001c';
+		static constexpr char group_separator = '\u001d';
+		static constexpr char record_separator = '\u001e';
+		static constexpr char unit_separator = '\u001f';
+		static constexpr char delete_character = '\u007f';
 	}
 }
