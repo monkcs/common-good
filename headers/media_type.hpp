@@ -278,6 +278,9 @@ namespace common_good
 		}
 
 		[[nodiscard]] constexpr auto operator==(const media_type& other) const noexcept -> bool { return value == other.value; };
+		[[nodiscard]] constexpr auto operator==(const std::string& other) const noexcept -> bool { return value == other; };
+		[[nodiscard]] constexpr auto operator==(const std::string_view& other) const noexcept -> bool { return value == other; };
+		[[nodiscard]] constexpr auto operator==(const char* const other) const noexcept -> bool { return value == other; };
 
 		/// @brief Get media type as string in format 'type/tree.subtype+suffix'
 		[[nodiscard]] constexpr auto string() && noexcept -> std::string { return std::move(value); }
