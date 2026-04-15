@@ -34,6 +34,8 @@ namespace common_good
 		};
 
 		std::string value;
+
+		/// @brief By using numeric offsets instead of iterators the class is copy/move friendly.
 		character_offset offset {};
 
 		/// @brief Test if string only contain alphanumeric lowercase characters or '!', '#', '$', '&', '-', '^', '_', '.', '+'.
