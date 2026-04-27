@@ -103,6 +103,7 @@ namespace common_good::ascii
 			   or (character >= char {91} and character <= char {96}) or (character >= char {123} and character <= char {126});
 	}
 
+	/// @brief Ascii control character
 	namespace control
 	{
 		static constexpr char null = '\u0000';
