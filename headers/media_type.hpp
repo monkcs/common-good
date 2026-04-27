@@ -347,13 +347,16 @@ namespace common_good
 			[[nodiscard]] explicit parsing_error(const char* const message) noexcept : std::invalid_argument {message} { };
 		};
 	};
-}
 
-/// @brief Media type as defined by RFC 6838. NOTE: Currently no support for parameters.
-/// @param string Media type in format 'type/tree.subtype+suffix'
-/// @exception media_type::parsing_error If string fail to parse.
-[[nodiscard]] constexpr auto operator""_media_type(const char* const string, const std::size_t lenght)
-{ return common_good::media_type {std::string {string, lenght}}; }
+	inline namespace literals
+	{
+		/// @brief Media type as defined by RFC 6838. NOTE: Currently no support for parameters.
+		/// @param string Media type in format 'type/tree.subtype+suffix'
+		/// @exception media_type::parsing_error If string fail to parse.
+		[[nodiscard]] constexpr auto operator""_media_type(const char* const string, const std::size_t lenght)
+		{ return common_good::media_type {std::string {string, lenght}}; }
+	}
+}
 
 template<>
 struct std::formatter<common_good::media_type> : std::formatter<std::string>
