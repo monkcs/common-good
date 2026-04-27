@@ -6,4 +6,4 @@ The header files are commented with with description and usage.
 - `common_good::media_type` - Media Type as defined by RFC 6838.
 
 ## Free functions
-- `common_good::ascii::*` - Ascii character check and conversion functions.
+- `common_good::ascii::*` - Ascii character check and conversion functions (all constexpr).
