@@ -2,6 +2,12 @@
 
 namespace common_good::ascii
 {
+	/// @brief Test if character is ascii [0..127].
+	/// @param character Character to test.
+	/// @return True if character is ascii.
+	[[nodiscard]] constexpr auto is_ascii(const char character) noexcept -> bool
+	{ return character == char {0} or (character > char {0} and character <= char {127}); }
+
 	/// @brief Test if character is digit [0-9].
 	/// @param character Ascii character to test.
 	/// @return True if character match.
