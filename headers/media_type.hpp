@@ -279,6 +279,16 @@ namespace common_good
 			parse();
 		}
 
+		/// @brief Media type as defined by RFC 6838. NOTE: Currently no support for parameters.
+		/// @param type Media type in format 'type/tree.subtype+suffix'
+		/// @exception media_type::parsing_error If string fail to parse.
+		[[nodiscard]] constexpr media_type(const std::string_view type) : media_type {std::string {type}} { }
+
+		/// @brief Media type as defined by RFC 6838. NOTE: Currently no support for parameters.
+		/// @param type Media type in format 'type/tree.subtype+suffix'
+		/// @exception media_type::parsing_error If string fail to parse.
+		[[nodiscard]] constexpr media_type(const char* const type) : media_type {std::string {type}} { }
+
 		[[nodiscard]] constexpr auto operator==(const media_type& other) const noexcept -> bool { return value == other.value; };
 		[[nodiscard]] constexpr auto operator==(const std::string& other) const noexcept -> bool { return value == other; };
 		[[nodiscard]] constexpr auto operator==(const std::string_view& other) const noexcept -> bool { return value == other; };
