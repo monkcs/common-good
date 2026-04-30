@@ -301,9 +301,11 @@ namespace common_good
 		[[nodiscard]] constexpr auto string() const& -> const std::string& { return value; }
 
 		/// @brief Get top-level type.
+		/// @return Top-level type
 		[[nodiscard]] constexpr auto type() const -> std::string { return value.substr(0, offset.after_slash - 1); }
 
 		/// @brief Get registration tree.
+		/// @return Registration tree or if in standards tree, empty string.
 		[[nodiscard]] constexpr auto tree() const -> std::string
 		{
 			if (offset.after_possible_first_dot)
@@ -317,6 +319,7 @@ namespace common_good
 		}
 
 		/// @brief Get subtype.
+		/// @return Subtype.
 		[[nodiscard]] constexpr auto subtype() const -> std::string
 		{
 			const auto start = static_cast<std::size_t>(offset.after_slash) + static_cast<std::size_t>(offset.after_possible_first_dot);
@@ -332,6 +335,7 @@ namespace common_good
 		}
 
 		/// @brief Get structured type name suffix.
+		/// @return Suffix or if not present, empty string.
 		[[nodiscard]] constexpr auto suffix() const -> std::string
 		{
 			if (offset.possible_last_plus)
